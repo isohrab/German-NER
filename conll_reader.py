@@ -1,6 +1,10 @@
 import numpy as np
 import os
 
+UNK = "$UNK$"
+NUM = "$NUM$"
+NONE = "O"
+
 class conllReader(object):
     """
     This class will iterate over CoNLL dataset.
@@ -13,7 +17,7 @@ class conllReader(object):
         self.length = None
 
     def __iter__(self):
-        with open(self.filename,encoding='utf-8') as f:
+        with open(self.filename, encoding='utf-8') as f:
             words, tags = [], []
             for line in f:
                 line = line.strip()
@@ -26,7 +30,7 @@ class conllReader(object):
                     word, tag = ls[1], ls[5]
                     if self.convert_digits:
                         if word.isdigit():
-                            word = "$NUM$"
+                            word = NUM
                     words += [word]
                     tags += [tag]
 
@@ -87,3 +91,39 @@ def get_word2vec(datasets):
 
     return sentences
 
+def write_vocab(vocab, filename):
+    """
+    Writes a vocab to a file
+
+    Args:
+        vocab: iterable that yields word
+        filename: path to vocab file
+    Returns:
+        write a word per line
+    """
+    print("Writing vocab...")
+    with open(filename, "w") as f:
+        for i, word in enumerate(vocab):
+            if i != len(vocab) - 1:
+                f.write("{}\n".format(word))
+            else:
+                f.write(word)
+    print("- done. {} tokens".format(len(vocab)))
+
+def load_vocab(filename):
+    """
+    Args:
+        filename: file with a word per line
+    Returns:
+        d: dict[word] = index
+    """
+    try:
+        d = dict()
+        with open(filename) as f:
+            for idx, word in enumerate(f):
+                word = word.strip()
+                d[word] = idx
+
+    except IOError:
+        print("Error loading file")
+    return d
