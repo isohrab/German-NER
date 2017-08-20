@@ -52,23 +52,27 @@ class Model(object):
         with tf.variable_scope("words"):
             _word_embeddings = tf.Variable(self.embeddings, name="_word_embeddings", dtype=tf.float32, trainable=False)
             word_embeddings = tf.nn.embedding_lookup(_word_embeddings, self.word_ids, name="word_embeddings")
-
+            print("word_embedding:", word_embeddings.get_shape())
+            #word_embeddings = self.embeddings
         with tf.variable_scope("chars"):
             # get embeddings matrix
             _char_embeddings = tf.get_variable(name="_char_embeddings",
                                                dtype=tf.float32,
-                                               shape=[self.nchars, self.config.dim_char])
-            char_embeddings = tf.nn.embedding_lookup(_char_embeddings,
+                                               shape=[self.nchars, self.config.char_embedding_dim])
+            self.char_embeddings = tf.nn.embedding_lookup(_char_embeddings,
                                                      self.char_ids,
                                                      name="char_embeddings")
-            self.embedded_chars_expanded = tf.expand_dims(char_embeddings, -1)
+            s = tf.shape(self.char_embeddings)
+            self.char_embeddings = tf.reshape(self.char_embeddings, [-1, self.config.max_length_word, self.config.char_embedding_dim])
+            self.embedded_chars_expanded = tf.expand_dims(self.char_embeddings, -1)
+            print("embedded_chars_expanded:", self.embedded_chars_expanded.get_shape())
 
             # Create a convolution + maxpool layer for each filter size
             pooled_outputs = []
             for i, filter_size in enumerate(self.config.filter_sizes):
                 with tf.name_scope("conv-maxpool-%s" % filter_size):
                     # Convolution Layer
-                    filter_shape = [filter_size, self.config.dim_char, 1, self.config.num_filters]
+                    filter_shape = [filter_size, self.config.char_embedding_dim, 1, self.config.num_filters]
                     W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name="W_char")
                     b = tf.Variable(tf.constant(0.1, shape=[self.config.num_filters]), name="b_char")
                     conv = tf.nn.conv2d(
@@ -82,7 +86,7 @@ class Model(object):
                     # Maxpooling over the outputs
                     pooled = tf.nn.max_pool(
                         h,
-                        ksize=[1, self.sentences_lengths - filter_size + 1, 1, 1],
+                        ksize=[1, self.config.max_length_word - filter_size + 1, 1, 1],
                         strides=[1, 1, 1, 1],
                         padding='VALID',
                         name="pool")
@@ -91,7 +95,7 @@ class Model(object):
             # Combine all the pooled features
             num_filters_total = self.config.num_filters * len(self.config.filter_sizes)
             self.h_pool = tf.concat(pooled_outputs, 3)
-            self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])
+            self.h_pool_flat = tf.reshape(self.h_pool, [-1, s[1], num_filters_total])
             word_embeddings = tf.concat([word_embeddings, self.h_pool_flat], axis=-1)
 
         self.word_embeddings = tf.nn.dropout(word_embeddings, self.dropout)
@@ -114,7 +118,8 @@ class Model(object):
             self.word_ids: word_ids,
             self.sentences_lengths: sentences_lengths,
             self.char_ids: char_ids,
-            self.word_lengths: word_lengths
+            self.word_lengths: word_lengths,
+            self.max_len_word: len(word_ids[1])
         }
 
         if labels is not None:

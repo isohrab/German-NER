@@ -1,3 +1,4 @@
+from config import Config
 
 def pad_sequences(sequences, pad_token, type):
     '''
@@ -12,7 +13,7 @@ def pad_sequences(sequences, pad_token, type):
         sequence_padded, sequence_length = add_pad(sequences, pad_token, max_length)
 
     elif type == 'words':
-        max_length_word = max([max(map(lambda x : len(x), seq)) for seq in sequences])
+        max_length_word = config.max_length_word#max([max(map(lambda x : len(x), seq)) for seq in sequences])
         sequence_padded, sequence_length = [], []
         for seq in sequences:
             sp, sl = add_pad(seq, pad_token, max_length_word)

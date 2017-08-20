@@ -18,17 +18,22 @@ class Config():
     # dataset
     test_filename = "data/test_data"
     train_filename = "data/train_data"
-    word2vec_filename = "data/wikipedia-200-mincount-20-window-8-cbow.bin"
+    #word2vec_filename = "data/wikipedia-200-mincount-20-window-8-cbow.bin"
+    word2vec_filename = "data/wikipedia-100-mincount-20-window-5-cbow.bin"
     tags_filename = "data/tags.txt"
     words_filename = "data/words.txt"
     chars_filename = "data/chars.txt"
 
     # Hyper parameters
-    char_dim = 100
+    char_embedding_dim = 100
     hidden_size = 100
-    filter_sizes = [3, 4, 5]
-    num_filters = 120
+    filter_sizes = [1, 2, 3, 4, 5, 6]
+    num_filters = 32
     batch_size = 60
+    max_length_word = 30
+    nepochs = 15
+    lr = 0.001
+    dropout = 0.5
 
     # model config
     crf = False

@@ -10,10 +10,11 @@ class conllReader(object):
     This class will iterate over CoNLL dataset.
     """
 
-    def __init__(self, filename, convert_digits=True):
+    def __init__(self, filename, processing_word=None, processing_tag=None):
 
         self.filename = filename
-        self.convert_digits = convert_digits
+        self.processing_word = processing_word
+        self.processing_tag = processing_tag
         self.length = None
 
     def __iter__(self):
@@ -21,16 +22,17 @@ class conllReader(object):
             words, tags = [], []
             for line in f:
                 line = line.strip()
-                if len(line) == 0:
+                if (len(line) == 0 or line.startswith("-DOCSTART-")):
                     if len(words) != 0:
                         yield words, tags
                         words, tags = [], []
                 else:
                     ls = line.split('\t')
                     word, tag = ls[1], ls[5]
-                    if self.convert_digits:
-                        if word.isdigit():
-                            word = NUM
+                    if self.processing_word is not None:
+                        word = self.processing_word(word)
+                    if self.processing_tag is not None:
+                        tag = self.processing_tag(tag)
                     words += [word]
                     tags += [tag]
 
@@ -127,3 +129,42 @@ def load_vocab(filename):
     except IOError:
         print("Error loading file")
     return d
+
+def get_processing_word(vocab_words=None, vocab_chars=None,
+                    lowercase=False, chars=False):
+    """
+    Args:
+        vocab: dict[word] = idx
+    Returns:
+        f("cat") = ([12, 4, 32], 12345)
+                 = (list of char ids, word id)
+    """
+    def f(word):
+        # 0. get chars of words
+        if vocab_chars is not None and chars == True:
+            char_ids = []
+            for char in word:
+                # ignore chars out of vocabulary
+                if char in vocab_chars:
+                    char_ids += [vocab_chars[char]]
+
+        # 1. preprocess word
+        if lowercase:
+            word = word.lower()
+        if word.isdigit():
+            word = NUM
+
+        # 2. get id of word
+        if vocab_words is not None:
+            if word in vocab_words:
+                word = vocab_words[word]
+            else:
+                word = vocab_words[UNK]
+
+        # 3. return tuple char ids, word id
+        if vocab_chars is not None and chars == True:
+            return char_ids, word
+        else:
+            return word
+
+    return f
