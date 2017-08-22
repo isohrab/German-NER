@@ -56,9 +56,9 @@ class Model(object):
             #word_embeddings = self.embeddings
         with tf.variable_scope("chars"):
             # get embeddings matrix
-            _char_embeddings = tf.get_variable(name="_char_embeddings",
-                                               dtype=tf.float32,
-                                               shape=[self.nchars, self.config.char_embedding_dim])
+            _char_embeddings = tf.Variable(tf.random_uniform([self.nchars, self.config.char_embedding_dim], -1.0, 1.0),
+                                           name="_char_embeddings",
+                                           dtype=tf.float32)
             self.char_embeddings = tf.nn.embedding_lookup(_char_embeddings,
                                                      self.char_ids,
                                                      name="char_embeddings")
@@ -118,8 +118,7 @@ class Model(object):
             self.word_ids: word_ids,
             self.sentences_lengths: sentences_lengths,
             self.char_ids: char_ids,
-            self.word_lengths: word_lengths,
-            self.max_len_word: len(word_ids[1])
+            self.word_lengths: word_lengths
         }
 
         if labels is not None:
@@ -250,17 +249,18 @@ class Model(object):
             epoch: (int) number of the epoch
         """
         nbatches = (len(train) + self.config.batch_size - 1) // self.config.batch_size
+        train_losses = 0
         for i, (words, labels) in enumerate(minibatches(train, self.config.batch_size)):
             fd, _ = self.get_feed_dict(words, labels, self.config.lr, self.config.dropout)
 
             _, self.train_loss, summary = sess.run([self.train_op, self.loss, self.merged], feed_dict=fd)
-
+            train_losses += self.train_loss
             # tensorboard
             if i % 10 == 0:
                 self.file_writer.add_summary(summary, epoch*nbatches + i)
 
         acc, f1 = self.run_evaluate(sess, dev, tags)
-        print("epoch %d - train loss: %.2f, validation acc: %.2f" % (epoch, self.train_loss, acc * 100))
+        print("epoch %d - train loss: %.2f, validation acc: %.2f" % (epoch + 1, train_losses, acc * 100))
         return acc, f1
 
 

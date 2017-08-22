@@ -1,9 +1,6 @@
 import numpy as np
 import os
-
-UNK = "$UNK$"
-NUM = "$NUM$"
-NONE = "O"
+from config import Config
 
 class conllReader(object):
     """
@@ -22,7 +19,7 @@ class conllReader(object):
             words, tags = [], []
             for line in f:
                 line = line.strip()
-                if (len(line) == 0 or line.startswith("-DOCSTART-")):
+                if len(line) == 0:
                     if len(words) != 0:
                         yield words, tags
                         words, tags = [], []
@@ -152,14 +149,14 @@ def get_processing_word(vocab_words=None, vocab_chars=None,
         if lowercase:
             word = word.lower()
         if word.isdigit():
-            word = NUM
+            word = Config.NUM
 
         # 2. get id of word
         if vocab_words is not None:
             if word in vocab_words:
                 word = vocab_words[word]
             else:
-                word = vocab_words[UNK]
+                word = vocab_words[Config.UNK]
 
         # 3. return tuple char ids, word id
         if vocab_chars is not None and chars == True:

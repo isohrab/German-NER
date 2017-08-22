@@ -6,10 +6,6 @@ class Config():
         if not os.path.exists(self.output_path):
             os.makedirs(self.output_path)
 
-        # create instance of logger
-        #self.logger = get_logger(self.log_path)
-
-
     # Path config
     output_path = "results/crf/"
     model_output = output_path + "model.weights/"
@@ -23,6 +19,9 @@ class Config():
     tags_filename = "data/tags.txt"
     words_filename = "data/words.txt"
     chars_filename = "data/chars.txt"
+    UNK = "$UNK$"
+    NUM = "$NUM$"
+    NONE = "O"
 
     # Hyper parameters
     char_embedding_dim = 100
@@ -31,8 +30,9 @@ class Config():
     num_filters = 32
     batch_size = 60
     max_length_word = 30
-    nepochs = 15
+    nepochs = 1
     lr = 0.001
+    lr_decay = 0.
     dropout = 0.5
 
     # model config
