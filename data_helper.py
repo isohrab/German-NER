@@ -1,4 +1,4 @@
-from config import Config
+from config import DefaultConfig as cfg
 
 def pad_sequences(sequences, pad_token, type):
     '''
@@ -13,7 +13,7 @@ def pad_sequences(sequences, pad_token, type):
         sequence_padded, sequence_length = add_pad(sequences, pad_token, max_length)
 
     elif type == 'words':
-        max_length_word = Config.max_length_word#max([max(map(lambda x : len(x), seq)) for seq in sequences])
+        max_length_word = cfg.MAX_LENGTH_WORD#max([max(map(lambda x : len(x), seq)) for seq in sequences])
         sequence_padded, sequence_length = [], []
         for seq in sequences:
             sp, sl = add_pad(seq, pad_token, max_length_word)
@@ -46,7 +46,7 @@ def add_pad(sequences, pad_token, max_length):
     return sequence_padded, sequence_length
 
 
-def minibatches(data, minibatch_size):
+def batch_gen(data, minibatch_size):
     """
     Args:
         data: generator of (sentence, tags) tuples
@@ -96,7 +96,7 @@ def get_chunks(seq, tags):
         tags = {"B-PER": 4, "I-PER": 5, "B-LOC": 3}
         result = [("PER", 0, 2), ("LOC", 3, 4)]
     """
-    default = tags[Config.NONE]
+    default = tags[cfg.NONE]
     idx_to_tag = {idx: tag for tag, idx in tags.items()}
     chunks = []
     chunk_type, chunk_start = None, None

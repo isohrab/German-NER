@@ -1,10 +1,10 @@
 import os
 
-class Config():
-    def __init__(self):
-        # directory for training outputs
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path)
+class DefaultConfig():
+    # def __init__(self):
+    #     # directory for training outputs
+    #     if not os.path.exists(self.output_path):
+    #         os.makedirs(self.output_path)
 
     # Path config
     output_path = "results/crf/"
@@ -24,17 +24,15 @@ class Config():
     NONE = "O"
 
     # Hyper parameters
-    char_embedding_dim = 100
-    hidden_size = 100
-    filter_sizes = [1, 2, 3, 4, 5, 6]
-    num_filters = 32
-    batch_size = 60
-    max_length_word = 30
-    nepochs = 1
-    lr = 0.001
-    lr_decay = 0.
-    dropout = 0.5
+    CHAR_EMB_DIM = 100
+    HIDDEN_SIZE = 100
+    FILTER_SIZE = [1, 2, 3, 4, 5, 6]
+    N_FILTERS = 32
+    BATCH_SIZE = 60
+    MAX_LENGTH_WORD = 45
+    N_EPOCHS = 15
+    LR = 0.001
+    LR_DECAY = 0.9
+    DROPOUT = 0.5
 
-    # model config
-    crf = False
 

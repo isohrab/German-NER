@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from config import Config
+from config import DefaultConfig as cfg
 
 class conllReader(object):
     """
@@ -53,8 +53,8 @@ def get_vocabs(datasets):
         a set of all the words in the dataset
     """
     print("Building vocab...")
-    vocab_words = set()
-    vocab_tags = set()
+    vocab_words = dict()
+    vocab_tags = dict()
     for dataset in datasets:
         for words, tags in dataset:
             vocab_words.update(words)
@@ -70,7 +70,7 @@ def get_char_vocab(dataset):
     Returns:
         a set of all the characters in the dataset
     """
-    vocab_char = set()
+    vocab_char = dict()
     for words, _ in dataset:
         for word in words:
             vocab_char.update(word)
@@ -78,15 +78,15 @@ def get_char_vocab(dataset):
     return vocab_char
 
 
-def get_word2vec(datasets):
+def get_sentences(datasets):
     """
     :param dataset: an iterator yielding tuples (sentence, tags)
     :return: a list of sentences
     """
     sentences = []
     for dataset in datasets:
-        for words, _ in dataset:
-            sentences.append(words)
+        for sentence, _ in dataset:
+            sentences.append(sentence)
 
     return sentences
 
@@ -149,14 +149,14 @@ def get_processing_word(vocab_words=None, vocab_chars=None,
         if lowercase:
             word = word.lower()
         if word.isdigit():
-            word = Config.NUM
+            word = cfg.NUM
 
         # 2. get id of word
         if vocab_words is not None:
             if word in vocab_words:
                 word = vocab_words[word]
             else:
-                word = vocab_words[Config.UNK]
+                word = vocab_words[cfg.UNK]
 
         # 3. return tuple char ids, word id
         if vocab_chars is not None and chars == True:
