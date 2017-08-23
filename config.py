@@ -25,7 +25,7 @@ class DefaultConfig():
 
     # Hyper parameters
     CHAR_EMB_DIM = 100
-    HIDDEN_SIZE = 100
+    HIDDEN_SIZE = 200
     FILTER_SIZE = [1, 2, 3, 4, 5, 6]
     N_FILTERS = 32
     BATCH_SIZE = 60

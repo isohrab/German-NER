@@ -18,6 +18,8 @@ def train_model(cfg, train_set, dev_set, embeddings, tags, chars):
         for epoch in range(cfg.N_EPOCHS):
 
             train_losses = 0.0
+            validation_loss = 0.0
+            accuracy = 0.0
             for words, labels in batch_gen(train_set, cfg.BATCH_SIZE):
                 fd, _ = model.get_feed_dict(words, labels, cfg.LR, cfg.DROPOUT)
                 _, train_loss = sess.run([model.train_op, model.loss], feed_dict=fd)

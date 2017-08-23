@@ -162,13 +162,13 @@ class Model(object):
             output = tf.reshape(output, [-1, 2 * self.cfg.HIDDEN_SIZE])
             pred = tf.matmul(output, W) + b
             self.logits = tf.reshape(pred, [-1, ntime_steps, self.ntags])
-            self.labels_pred = tf.cast(tf.argmax(self.logits, axis=-1), tf.int32)
 
 
     def add_loss_op(self):
         """
         Adds loss to self
         """
+        self.labels_pred = tf.cast(tf.argmax(self.logits, axis=-1), tf.int32)
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.labels)
         mask = tf.sequence_mask(self.sentences_lengths)
         losses = tf.boolean_mask(losses, mask)
@@ -184,7 +184,7 @@ class Model(object):
             self.train_op = optimizer.minimize(self.loss)
 
 
-    def predict_batch(self, sess, words):
+    def predict_batch(self, sess, words, labels):
         """
         Args:
             sess: a tensorflow session
@@ -194,7 +194,7 @@ class Model(object):
             sequence_length
         """
         # get the feed dictionnary
-        fd, sequence_lengths = self.get_feed_dict(words, dropout=1.0)
+        fd, sequence_lengths = self.get_feed_dict(words, labels, dropout=1.0)
 
         labels_pred, loss = sess.run([self.labels_pred, self.loss], feed_dict=fd)
 
@@ -216,7 +216,7 @@ class Model(object):
         losses = 0.0
         correct_preds, total_correct, total_preds = 0., 0., 0.
         for words, labels in batch_gen(test, self.cfg.BATCH_SIZE):
-            labels_pred, sequence_lengths , loss = self.predict_batch(sess, words)
+            labels_pred, sequence_lengths , loss = self.predict_batch(sess, words, labels)
             losses += loss
             for lab, lab_pred, length in zip(labels, labels_pred, sequence_lengths):
                 lab = lab[:length]
