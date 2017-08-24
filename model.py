@@ -55,7 +55,6 @@ class Model(object):
         with tf.variable_scope("words"):
             _word_embeddings = tf.Variable(self.embeddings, name="_word_embeddings", dtype=tf.float32, trainable=False)
             word_embeddings = tf.nn.embedding_lookup(_word_embeddings, self.word_ids, name="word_embeddings")
-            print("word_embedding:", word_embeddings.get_shape())
 
         with tf.variable_scope("chars"):
             # get embeddings matrix
@@ -68,7 +67,6 @@ class Model(object):
             s = tf.shape(self.char_embeddings)
             self.char_embeddings = tf.reshape(self.char_embeddings, [-1, self.cfg.MAX_LENGTH_WORD, self.cfg.CHAR_EMB_DIM])
             self.embedded_chars_expanded = tf.expand_dims(self.char_embeddings, -1)
-            print("embedded_chars_expanded:", self.embedded_chars_expanded.get_shape())
 
             # Create a convolution + maxpool layer for each filter size
             pooled_outputs = []
@@ -154,7 +152,7 @@ class Model(object):
         with tf.variable_scope("proj"):
             W = tf.get_variable("W", shape=[2 * self.cfg.HIDDEN_SIZE, self.ntags],
                                 dtype=tf.float32,
-                                initializer=tf)
+                                initializer=tf.contrib.layers.xavier_initializer())
 
             b = tf.get_variable("b", shape=[self.ntags], dtype=tf.float32,
                                 initializer=tf.zeros_initializer())
