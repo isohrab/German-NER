@@ -27,9 +27,9 @@ def train_model(cfg, train_set, dev_set, embeddings, tags, chars):
 
             accuracy, f1, validation_loss = model.run_evaluate(sess, dev_set, tags)
             # decay learning rate
-            cfg.LR *= cfg.LR_DECAY
+            model.lr *= cfg.LR_DECAY
 
-            print("epoch %d - train loss: %.2f, validation loss: %.2f, validation acc: %.2f width f1 score: %.2f" % \
+            print("epoch %d - train loss: %.2f, validation loss: %.2f, accuracy: %.2f width f1: %.2f" % \
                 (epoch + 1, train_losses, validation_loss, accuracy * 100, f1))
 
 

@@ -7,7 +7,7 @@ class DefaultConfig():
     #         os.makedirs(self.output_path)
 
     # Path config
-    output_path = "results/crf/"
+    output_path = "results/"
     model_output = output_path + "model.weights/"
     log_path = output_path + "log.txt"
 
@@ -24,13 +24,13 @@ class DefaultConfig():
     NONE = "O"
 
     # Hyper parameters
-    CHAR_EMB_DIM = 100
-    HIDDEN_SIZE = 200
+    CHAR_EMB_DIM = 120
+    HIDDEN_SIZE = 400
     FILTER_SIZE = [1, 2, 3, 4, 5, 6]
-    N_FILTERS = 32
-    BATCH_SIZE = 60
-    MAX_LENGTH_WORD = 45
-    N_EPOCHS = 15
+    N_FILTERS = 120
+    BATCH_SIZE = 40
+    MAX_LENGTH_WORD = 50
+    N_EPOCHS = 50
     LR = 0.001
     LR_DECAY = 0.9
     DROPOUT = 0.5

@@ -153,7 +153,8 @@ class Model(object):
 
         with tf.variable_scope("proj"):
             W = tf.get_variable("W", shape=[2 * self.cfg.HIDDEN_SIZE, self.ntags],
-                                dtype=tf.float32)
+                                dtype=tf.float32,
+                                initializer=tf)
 
             b = tf.get_variable("b", shape=[self.ntags], dtype=tf.float32,
                                 initializer=tf.zeros_initializer())
@@ -216,10 +217,10 @@ class Model(object):
         losses = 0.0
         correct_preds, total_correct, total_preds = 0., 0., 0.
         for words, labels in batch_gen(test, self.cfg.BATCH_SIZE):
-            labels_pred, sequence_lengths , loss = self.predict_batch(sess, words, labels)
+            labels_pred, sequence_lengths, loss = self.predict_batch(sess, words, labels)
             losses += loss
             for lab, lab_pred, length in zip(labels, labels_pred, sequence_lengths):
-                lab = lab[:length]
+                lab = lab[:length] #TODO: it is useless!
                 lab_pred = lab_pred[:length]
                 accs += [a==b for (a, b) in zip(lab, lab_pred)]
                 lab_chunks = set(get_chunks(lab, tags))
