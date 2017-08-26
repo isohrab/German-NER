@@ -24,15 +24,15 @@ class DefaultConfig():
     NONE = "O"
 
     # Hyper parameters
-    CHAR_EMB_DIM = 60
-    HIDDEN_SIZE = 200
+    CHAR_EMB_DIM = 75
+    HIDDEN_SIZE = 300
     FILTER_SIZE = [2, 3, 4]
-    N_FILTERS = 30
-    BATCH_SIZE = 10
-    MAX_LENGTH_WORD = 50
-    N_EPOCHS = 50
-    LR = 0.01
-    LR_DECAY = 0.9
+    N_FILTERS = 128
+    BATCH_SIZE = 64
+    MAX_LENGTH_WORD = 40
+    N_EPOCHS = 100
+    LR = 0.001
+    LR_DECAY = 0.95
     DROPOUT = 0.5
 
 
