@@ -1,23 +1,26 @@
 import tensorflow as tf
-from data_helper import pad_sequences, minibatches, get_chunks
+from data_helper import pad_sequences, batch_gen, get_chunks
 import numpy as np
-import os
 
 
 class Model(object):
     def __init__(self, config, embeddings, ntags, nchars):
         '''
         Tensorflow model
-        :param config: loading parameters from config files
         :param embeddings: word2vec embedding file which produced by gensim
         :param ntags: number of tags
         :param nchars: number of chars
         '''
-        self.config = config
+        self.cfg = config
         self.embeddings = embeddings
         self.nchars = nchars
         self.ntags = ntags
 
+        self.add_placeholders()
+        self.add_word_embeddings_op()
+        self.add_logits_op()
+        self.add_loss_op()
+        self.add_train_op()
 
     def add_placeholders(self):
         '''
@@ -52,29 +55,27 @@ class Model(object):
         with tf.variable_scope("words"):
             _word_embeddings = tf.Variable(self.embeddings, name="_word_embeddings", dtype=tf.float32, trainable=False)
             word_embeddings = tf.nn.embedding_lookup(_word_embeddings, self.word_ids, name="word_embeddings")
-            print("word_embedding:", word_embeddings.get_shape())
-            #word_embeddings = self.embeddings
+
         with tf.variable_scope("chars"):
             # get embeddings matrix
-            _char_embeddings = tf.Variable(tf.random_uniform([self.nchars, self.config.char_embedding_dim], -1.0, 1.0),
+            _char_embeddings = tf.Variable(tf.random_uniform([self.nchars, self.cfg.CHAR_EMB_DIM], -1.0, 1.0),
                                            name="_char_embeddings",
                                            dtype=tf.float32)
             self.char_embeddings = tf.nn.embedding_lookup(_char_embeddings,
                                                      self.char_ids,
                                                      name="char_embeddings")
             s = tf.shape(self.char_embeddings)
-            self.char_embeddings = tf.reshape(self.char_embeddings, [-1, self.config.max_length_word, self.config.char_embedding_dim])
+            self.char_embeddings = tf.reshape(self.char_embeddings, [-1, self.cfg.MAX_LENGTH_WORD, self.cfg.CHAR_EMB_DIM])
             self.embedded_chars_expanded = tf.expand_dims(self.char_embeddings, -1)
-            print("embedded_chars_expanded:", self.embedded_chars_expanded.get_shape())
 
             # Create a convolution + maxpool layer for each filter size
             pooled_outputs = []
-            for i, filter_size in enumerate(self.config.filter_sizes):
+            for i, filter_size in enumerate(self.cfg.FILTER_SIZE):
                 with tf.name_scope("conv-maxpool-%s" % filter_size):
                     # Convolution Layer
-                    filter_shape = [filter_size, self.config.char_embedding_dim, 1, self.config.num_filters]
+                    filter_shape = [filter_size, self.cfg.CHAR_EMB_DIM, 1, self.cfg.N_FILTERS]
                     W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name="W_char")
-                    b = tf.Variable(tf.constant(0.1, shape=[self.config.num_filters]), name="b_char")
+                    b = tf.Variable(tf.constant(0.1, shape=[self.cfg.N_FILTERS]), name="b_char")
                     conv = tf.nn.conv2d(
                         self.embedded_chars_expanded,
                         W,
@@ -86,14 +87,14 @@ class Model(object):
                     # Maxpooling over the outputs
                     pooled = tf.nn.max_pool(
                         h,
-                        ksize=[1, self.config.max_length_word - filter_size + 1, 1, 1],
+                        ksize=[1, self.cfg.MAX_LENGTH_WORD - filter_size + 1, 1, 1],
                         strides=[1, 1, 1, 1],
                         padding='VALID',
                         name="pool")
                     pooled_outputs.append(pooled)
 
             # Combine all the pooled features
-            num_filters_total = self.config.num_filters * len(self.config.filter_sizes)
+            num_filters_total = self.cfg.N_FILTERS * len(self.cfg.FILTER_SIZE)
             self.h_pool = tf.concat(pooled_outputs, 3)
             self.h_pool_flat = tf.reshape(self.h_pool, [-1, s[1], num_filters_total])
             word_embeddings = tf.concat([word_embeddings, self.h_pool_flat], axis=-1)
@@ -139,8 +140,8 @@ class Model(object):
         Adds logits to self
         """
         with tf.variable_scope("bi-lstm"):
-            cell_fw = tf.contrib.rnn.LSTMCell(self.config.hidden_size)
-            cell_bw = tf.contrib.rnn.LSTMCell(self.config.hidden_size)
+            cell_fw = tf.contrib.rnn.LSTMCell(self.cfg.HIDDEN_SIZE)
+            cell_bw = tf.contrib.rnn.LSTMCell(self.cfg.HIDDEN_SIZE)
             (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(cell_fw,
                                                                         cell_bw, self.word_embeddings,
                                                                         sequence_length=self.sentences_lengths,
@@ -149,42 +150,28 @@ class Model(object):
             output = tf.nn.dropout(output, self.dropout)
 
         with tf.variable_scope("proj"):
-            W = tf.get_variable("W", shape=[2 * self.config.hidden_size, self.ntags],
-                                dtype=tf.float32)
+            W = tf.get_variable("W", shape=[2 * self.cfg.HIDDEN_SIZE, self.ntags],
+                                dtype=tf.float32,
+                                initializer=tf.contrib.layers.xavier_initializer())
 
             b = tf.get_variable("b", shape=[self.ntags], dtype=tf.float32,
                                 initializer=tf.zeros_initializer())
 
             ntime_steps = tf.shape(output)[1]
-            output = tf.reshape(output, [-1, 2 * self.config.hidden_size])
+            output = tf.reshape(output, [-1, 2 * self.cfg.HIDDEN_SIZE])
             pred = tf.matmul(output, W) + b
             self.logits = tf.reshape(pred, [-1, ntime_steps, self.ntags])
-
-
-    def add_pred_op(self):
-        """
-        Adds labels_pred to self
-        """
-        if not self.config.crf:
-            self.labels_pred = tf.cast(tf.argmax(self.logits, axis=-1), tf.int32)
 
 
     def add_loss_op(self):
         """
         Adds loss to self
         """
-        if self.config.crf:
-            log_likelihood, self.transition_params = tf.contrib.crf.crf_log_likelihood(
-            self.logits, self.labels, self.sentences_lengths)
-            self.loss = tf.reduce_mean(-log_likelihood)
-        else:
-            losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.labels)
-            mask = tf.sequence_mask(self.sentences_lengths)
-            losses = tf.boolean_mask(losses, mask)
-            self.loss = tf.reduce_mean(losses)
-
-        # for tensorboard
-        tf.summary.scalar("loss", self.loss)
+        self.labels_pred = tf.cast(tf.argmax(self.logits, axis=-1), tf.int32)
+        losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.labels)
+        mask = tf.sequence_mask(self.sentences_lengths)
+        losses = tf.boolean_mask(losses, mask)
+        self.loss = tf.reduce_mean(losses)
 
 
     def add_train_op(self):
@@ -196,17 +183,7 @@ class Model(object):
             self.train_op = optimizer.minimize(self.loss)
 
 
-    def add_init_op(self):
-        self.init = tf.global_variables_initializer()
-
-
-    def add_summary(self, sess):
-        # tensorboard stuff
-        self.merged = tf.summary.merge_all()
-        self.file_writer = tf.summary.FileWriter(self.config.output_path, sess.graph)
-
-
-    def predict_batch(self, sess, words):
+    def predict_batch(self, sess, words, labels):
         """
         Args:
             sess: a tensorflow session
@@ -216,52 +193,11 @@ class Model(object):
             sequence_length
         """
         # get the feed dictionnary
-        fd, sequence_lengths = self.get_feed_dict(words, dropout=1.0)
+        fd, sequence_lengths = self.get_feed_dict(words, labels, dropout=1.0)
 
-        if self.config.crf:
-            viterbi_sequences = []
-            logits, transition_params = sess.run([self.logits, self.transition_params],
-                    feed_dict=fd)
-            # iterate over the sentences
-            for logit, sequence_length in zip(logits, sequence_lengths):
-                # keep only the valid time steps
-                logit = logit[:sequence_length]
-                viterbi_sequence, viterbi_score = tf.contrib.crf.viterbi_decode(
-                                logit, transition_params)
-                viterbi_sequences += [viterbi_sequence]
+        labels_pred, loss = sess.run([self.labels_pred, self.loss], feed_dict=fd)
 
-            return viterbi_sequences, sequence_lengths
-
-        else:
-            labels_pred = sess.run(self.labels_pred, feed_dict=fd)
-
-            return labels_pred, sequence_lengths
-
-
-    def run_epoch(self, sess, train, dev, tags, epoch):
-        """
-        Performs one complete pass over the train set and evaluate on dev
-        Args:
-            sess: tensorflow session
-            train: dataset that yields tuple of sentences, tags
-            dev: dataset
-            tags: {tag: index} dictionary
-            epoch: (int) number of the epoch
-        """
-        nbatches = (len(train) + self.config.batch_size - 1) // self.config.batch_size
-        train_losses = 0
-        for i, (words, labels) in enumerate(minibatches(train, self.config.batch_size)):
-            fd, _ = self.get_feed_dict(words, labels, self.config.lr, self.config.dropout)
-
-            _, self.train_loss, summary = sess.run([self.train_op, self.loss, self.merged], feed_dict=fd)
-            train_losses += self.train_loss
-            # tensorboard
-            if i % 10 == 0:
-                self.file_writer.add_summary(summary, epoch*nbatches + i)
-
-        acc, f1 = self.run_evaluate(sess, dev, tags)
-        print("epoch %d - train loss: %.2f, validation acc: %.2f" % (epoch + 1, train_losses, acc * 100))
-        return acc, f1
+        return labels_pred, sequence_lengths, loss
 
 
     def run_evaluate(self, sess, test, tags):
@@ -276,12 +212,13 @@ class Model(object):
             f1 score
         """
         accs = []
+        losses = 0.0
         correct_preds, total_correct, total_preds = 0., 0., 0.
-        for words, labels in minibatches(test, self.config.batch_size):
-            labels_pred, sequence_lengths = self.predict_batch(sess, words)
-
+        for words, labels in batch_gen(test, self.cfg.BATCH_SIZE):
+            labels_pred, sequence_lengths, loss = self.predict_batch(sess, words, labels)
+            losses += loss
             for lab, lab_pred, length in zip(labels, labels_pred, sequence_lengths):
-                lab = lab[:length]
+                lab = lab[:length] #TODO: it is useless!
                 lab_pred = lab_pred[:length]
                 accs += [a==b for (a, b) in zip(lab, lab_pred)]
                 lab_chunks = set(get_chunks(lab, tags))
@@ -294,49 +231,4 @@ class Model(object):
         r = correct_preds / total_correct if correct_preds > 0 else 0
         f1 = 2 * p * r / (p + r) if correct_preds > 0 else 0
         acc = np.mean(accs)
-        return acc, f1
-
-
-    def train(self, train, dev, tags):
-        """
-        Performs training with early stopping and lr exponential decay
-
-        Args:
-            train: dataset that yields tuple of sentences, tags
-            dev: dataset
-            tags: {tag: index} dictionary
-        """
-        best_score = 0
-        saver = tf.train.Saver()
-        # for early stopping
-        with tf.Session() as sess:
-            sess.run(self.init)
-            # tensorboard
-            self.add_summary(sess)
-            for epoch in range(self.config.nepochs):
-                print("Epoch {:} out of {:}".format(epoch + 1, self.config.nepochs))
-
-                acc, f1 = self.run_epoch(sess, train, dev, tags, epoch)
-
-                # decay learning rate
-                self.config.lr *= self.config.lr_decay
-
-
-
-    def evaluate(self, test, tags):
-        saver = tf.train.Saver()
-        with tf.Session() as sess:
-            print("Testing model over test set")
-            saver.restore(sess, self.config.model_output)
-            acc, f1 = self.run_evaluate(sess, test, tags)
-            print("- test acc {:04.2f} - f1 {:04.2f}".format(100*acc, 100*f1))
-
-
-    def build(self):
-        self.add_placeholders()
-        self.add_word_embeddings_op()
-        self.add_logits_op()
-        self.add_pred_op()
-        self.add_loss_op()
-        self.add_train_op()
-        self.add_init_op()
+        return acc, f1, losses
