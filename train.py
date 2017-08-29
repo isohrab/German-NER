@@ -8,10 +8,10 @@ from model import Model
 from data_helper import batch_gen
 
 
-def train_model(cfg, train_set, dev_set, embeddings, tags, chars):
+def train_model(cfg, train_set, dev_set, embed, tags, chars):
 
     # Build Model
-    model = Model(cfg, embeddings, len(tags), len(chars))
+    model = Model(cfg, embed, len(tags), len(chars))
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())

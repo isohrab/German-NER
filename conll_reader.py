@@ -53,8 +53,8 @@ def get_vocabs(datasets):
         a set of all the words in the dataset
     """
     print("Building vocab...")
-    vocab_words = dict()
-    vocab_tags = dict()
+    vocab_words = set()
+    vocab_tags = set()
     for dataset in datasets:
         for words, tags in dataset:
             vocab_words.update(words)
@@ -70,7 +70,7 @@ def get_char_vocab(dataset):
     Returns:
         a set of all the characters in the dataset
     """
-    vocab_char = dict()
+    vocab_char = set()
     for words, _ in dataset:
         for word in words:
             vocab_char.update(word)

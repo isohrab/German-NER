@@ -167,11 +167,16 @@ class Model(object):
         """
         Adds loss to self
         """
-        self.labels_pred = tf.cast(tf.argmax(self.logits, axis=-1), tf.int32)
-        losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.labels)
-        mask = tf.sequence_mask(self.sentences_lengths)
-        losses = tf.boolean_mask(losses, mask)
-        self.loss = tf.reduce_mean(losses)
+        if self.cfg.CRF:
+            log_likelihood, self.transition_params = tf.contrib.crf.crf_log_likelihood(
+            self.logits, self.labels, self.sentences_lengths)
+            self.loss = tf.reduce_mean(-log_likelihood)
+        else:
+            self.labels_pred = tf.cast(tf.argmax(self.logits, axis=-1), tf.int32)
+            losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.labels)
+            mask = tf.sequence_mask(self.sentences_lengths)
+            losses = tf.boolean_mask(losses, mask)
+            self.loss = tf.reduce_mean(losses)
 
 
     def add_train_op(self):
@@ -194,10 +199,23 @@ class Model(object):
         """
         # get the feed dictionnary
         fd, sequence_lengths = self.get_feed_dict(words, labels, dropout=1.0)
+        if self.cfg.CRF:
+            viterbi_sequences = []
+            logits, transition_params, loss = sess.run([self.logits, self.transition_params, self.loss],
+                    feed_dict=fd)
+            # iterate over the sentences
+            for logit, sequence_length in zip(logits, sequence_lengths):
+                # keep only the valid time steps
+                logit = logit[:sequence_length]
+                viterbi_sequence, viterbi_score = tf.contrib.crf.viterbi_decode(
+                                logit, transition_params)
+                viterbi_sequences += [viterbi_sequence]
 
-        labels_pred, loss = sess.run([self.labels_pred, self.loss], feed_dict=fd)
+            return viterbi_sequences, sequence_lengths, loss
 
-        return labels_pred, sequence_lengths, loss
+        else:
+            labels_pred, loss = sess.run([self.labels_pred, self.loss], feed_dict=fd)
+            return labels_pred, sequence_lengths, loss
 
 
     def run_evaluate(self, sess, test, tags):
