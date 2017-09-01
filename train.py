@@ -29,7 +29,7 @@ def train_model(cfg, train_set, dev_set, embed, tags, chars):
             # decay learning rate
             cfg.LR *= cfg.LR_DECAY
 
-            print("epoch %d - train loss: %.2f, validation loss: %.2f, accuracy: %.2f width f1: %.2f" % \
+            print("epoch %d - train loss: %.2f, validation loss: %.2f, accuracy: %.2f width f1: %.2f, P: %.2f, R: %.2f" % \
                 (epoch + 1, train_losses, validation_loss, accuracy * 100, f1))
 
 

@@ -35,6 +35,6 @@ class DefaultConfig():
     LR_DECAY = 0.95
     DROPOUT = 0.5
 
-    CRF = True
+    CRF = False
 
 
