@@ -7,7 +7,7 @@ class Model(object):
     def __init__(self, config, embeddings, ntags, nchars):
         '''
         Tensorflow model
-        :param embeddings: word2vec embedding file which produced by gensim
+        :param embeddings: word2vec embedding file which loaded
         :param ntags: number of tags
         :param nchars: number of chars
         '''
@@ -16,15 +16,18 @@ class Model(object):
         self.nchars = nchars
         self.ntags = ntags
 
-        self.add_placeholders()
-        self.add_word_embeddings_op()
-        self.add_logits_op()
-        self.add_loss_op()
-        self.add_train_op()
+        self.add_placeholders()                 # Initial placeholders
+        self.add_word_embeddings_op()           # add embedding operation to graph
+        self.add_logits_op()                    # add logits operation to graph
+        self.add_loss_op()                      # add loss operation to graph
+        self.add_train_op()                     # add train (optimzier) operation to graph
+
+        # Merge all summaries into a single op
+        self.merged_summary_op = tf.summary.merge_all()
 
     def add_placeholders(self):
         '''
-        add placeholder to self
+        Initial placeholders
         '''
         # Shape = (batch size, max length of sentences in batch)
         self.word_ids = tf.placeholder(tf.int32, shape=[None, None], name="word_ids")
@@ -50,17 +53,18 @@ class Model(object):
 
     def add_word_embeddings_op(self):
         '''
-        Add word embedings to model
+        Add word embedings operation to graph
         '''
         with tf.variable_scope("words"):
             _word_embeddings = tf.Variable(self.embeddings, name="_word_embeddings", dtype=tf.float32, trainable=False)
             word_embeddings = tf.nn.embedding_lookup(_word_embeddings, self.word_ids, name="word_embeddings")
 
         with tf.variable_scope("chars"):
+            xavi = tf.contrib.layers.xavier_initializer
             # get embeddings matrix
-            _char_embeddings = tf.Variable(tf.random_uniform([self.nchars, self.cfg.CHAR_EMB_DIM], -1.0, 1.0),
-                                           name="_char_embeddings",
-                                           dtype=tf.float32)
+            _char_embeddings = tf.get_variable("_char_embeddings", shape=[self.nchars, self.cfg.CHAR_EMB_DIM],
+                                               dtype=tf.float32,
+                                               initializer=xavi())
             self.char_embeddings = tf.nn.embedding_lookup(_char_embeddings,
                                                      self.char_ids,
                                                      name="char_embeddings")
@@ -146,11 +150,7 @@ class Model(object):
                                                                         cell_bw, self.word_embeddings,
                                                                         sequence_length=self.sentences_lengths,
                                                                         dtype=tf.float32)
-            print("state_f1:",state_fw[0].get_shape())
-            print("state_f2:",state_fw[1].get_shape())
-            print("outputf:",output_fw.get_shape())
             rnn_output = tf.concat([output_fw, output_bw], axis=-1)
-            print("rnn_output:",rnn_output.get_shape())
             rnn_output = tf.nn.dropout(rnn_output, self.dropout)
 
         with tf.variable_scope("proj"):
@@ -172,6 +172,7 @@ class Model(object):
             rnn_output = tf.reshape(rnn_output, [-1, 2 * self.cfg.HIDDEN_SIZE])
             w1_output = tf.matmul(rnn_output, W1) + b1
             w1_output = tf.nn.relu(w1_output, name="w1_relu")
+            w1_output = tf.nn.dropout(w1_output, self.dropout)
             pred = tf.matmul(w1_output, W2) + b2
             self.logits = tf.reshape(pred, [-1, ntime_steps, self.ntags])
 
@@ -190,6 +191,9 @@ class Model(object):
             mask = tf.sequence_mask(self.sentences_lengths)
             losses = tf.boolean_mask(losses, mask)
             self.loss = tf.reduce_mean(losses)
+
+        # Create a summary to monitor cost tensor
+        tf.summary.scalar("loss", self.loss)
 
 
     def add_train_op(self):
@@ -262,4 +266,10 @@ class Model(object):
         r = correct_preds / total_correct if correct_preds > 0 else 0
         f1 = 2 * p * r / (p + r) if correct_preds > 0 else 0
         acc = np.mean(accs)
+         # Create a summary to monitor accuracy
+        tf.summary.scalar("accuracy", acc)
+        # Create a summary to monitor Precision
+        tf.summary.scalar("accuracy", p)
+        # Create a summary to monitor Recall
+        tf.summary.scalar("accuracy", r)
         return acc, f1, losses, p ,r
