@@ -106,7 +106,7 @@ class Model(object):
     def get_feed_dict(self, words, labels=None, lr=None, dropout=None):
         """
         add pad to the data and build feed data for tensorflow
-        :param words: data
+        :param words: data sets
         :param labels: labels
         :param lr: learning rate
         :param dropout: dropout probability
