@@ -142,24 +142,37 @@ class Model(object):
         with tf.variable_scope("bi-lstm"):
             cell_fw = tf.contrib.rnn.LSTMCell(self.cfg.HIDDEN_SIZE)
             cell_bw = tf.contrib.rnn.LSTMCell(self.cfg.HIDDEN_SIZE)
-            (output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(cell_fw,
+            (output_fw, output_bw), (state_fw, state_bw) = tf.nn.bidirectional_dynamic_rnn(cell_fw,
                                                                         cell_bw, self.word_embeddings,
                                                                         sequence_length=self.sentences_lengths,
                                                                         dtype=tf.float32)
-            output = tf.concat([output_fw, output_bw], axis=-1)
-            output = tf.nn.dropout(output, self.dropout)
+            print("state_f1:",state_fw[0].get_shape())
+            print("state_f2:",state_fw[1].get_shape())
+            print("outputf:",output_fw.get_shape())
+            rnn_output = tf.concat([output_fw, output_bw], axis=-1)
+            print("rnn_output:",rnn_output.get_shape())
+            rnn_output = tf.nn.dropout(rnn_output, self.dropout)
 
         with tf.variable_scope("proj"):
-            W = tf.get_variable("W", shape=[2 * self.cfg.HIDDEN_SIZE, self.ntags],
+            W1 = tf.get_variable("W1", shape=[2 * self.cfg.HIDDEN_SIZE, self.cfg.HIDDEN_SIZE],
                                 dtype=tf.float32,
                                 initializer=tf.contrib.layers.xavier_initializer())
 
-            b = tf.get_variable("b", shape=[self.ntags], dtype=tf.float32,
+            b1 = tf.get_variable("b1", shape=[self.cfg.HIDDEN_SIZE], dtype=tf.float32,
                                 initializer=tf.zeros_initializer())
 
-            ntime_steps = tf.shape(output)[1]
-            output = tf.reshape(output, [-1, 2 * self.cfg.HIDDEN_SIZE])
-            pred = tf.matmul(output, W) + b
+            W2 = tf.get_variable("W2", shape=[self.cfg.HIDDEN_SIZE, self.ntags],
+                                dtype=tf.float32,
+                                initializer=tf.contrib.layers.xavier_initializer())
+
+            b2 = tf.get_variable("b2", shape=[self.ntags], dtype=tf.float32,
+                                initializer=tf.zeros_initializer())
+
+            ntime_steps = tf.shape(rnn_output)[1]
+            rnn_output = tf.reshape(rnn_output, [-1, 2 * self.cfg.HIDDEN_SIZE])
+            w1_output = tf.matmul(rnn_output, W1) + b1
+            w1_output = tf.nn.relu(w1_output, name="w1_relu")
+            pred = tf.matmul(w1_output, W2) + b2
             self.logits = tf.reshape(pred, [-1, ntime_steps, self.ntags])
 
 
@@ -249,4 +262,4 @@ class Model(object):
         r = correct_preds / total_correct if correct_preds > 0 else 0
         f1 = 2 * p * r / (p + r) if correct_preds > 0 else 0
         acc = np.mean(accs)
-        return acc, f1, losses
+        return acc, f1, losses, p ,r
