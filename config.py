@@ -5,7 +5,7 @@ class DefaultConfig():
     #   graph Path
     output_path = "results/"
     model_output = output_path + "model.weights/"
-    log_path = output_path + "log.txt"
+    log_path = output_path + "logs/"
     # preprocessed Data path
     test_filename = "data/test_data"
     train_filename = "data/train_data"

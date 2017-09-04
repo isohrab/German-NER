@@ -15,24 +15,30 @@ def train_model(cfg, train_set, dev_set, embed, tags, chars):
     # initial session
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+        # create log writer
+        summary_writer = tf.summary.FileWriter(cfg.log_path, graph=tf.get_default_graph())
         # run epoch
         for epoch in range(cfg.N_EPOCHS):
             train_losses = 0.0
             validation_loss = 0.0
             accuracy = 0.0
             # Run batches
+            i = 0
             for words, labels in batch_gen(train_set, cfg.BATCH_SIZE):
                 fd, _ = model.get_feed_dict(words, labels, cfg.LR, cfg.DROPOUT)
                 # train model
-                _, train_loss = sess.run([model.train_op, model.loss], feed_dict=fd)
+                _, train_loss, summary = sess.run([model.train_op, model.loss, model.merged_summary_op], feed_dict=fd)
                 train_losses += train_loss
+                # Write logs at every iteration
+                summary_writer.add_summary(summary, epoch * cfg.BATCH_SIZE + i)
+                i += 1
             # Evaluate model after training
             accuracy, f1, validation_loss, p, r = model.run_evaluate(sess, dev_set, tags)
             # decay learning rate
             cfg.LR *= cfg.LR_DECAY
 
             print("epoch %d - train loss: %.2f, validation loss: %.2f, accuracy: %.2f with f1: %.2f, P: %.2f, R: %.2f" % \
-                (epoch + 1, train_losses, validation_loss, accuracy * 100, f1, p, r))
+                (epoch + 1, train_losses, validation_loss, accuracy * 100, f1 * 100, p * 100, r * 100))
 
 
 if __name__ == "__main__":
@@ -44,6 +50,7 @@ if __name__ == "__main__":
 
     # check if data not processed, generate tags, words, chars
     if not (os.path.exists(cfg.words_filename) & os.path.exists(cfg.tags_filename) & os.path.exists(cfg.chars_filename)):
+        print("preprocessed Data not found. processing data...")
         train = cr.conllReader(sys.argv[2])
         test = cr.conllReader(sys.argv[3])
 

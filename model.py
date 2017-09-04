@@ -22,6 +22,9 @@ class Model(object):
         self.add_loss_op()                      # add loss operation to graph
         self.add_train_op()                     # add train (optimzier) operation to graph
 
+        # Merge all summaries into a single op
+        self.merged_summary_op = tf.summary.merge_all()
+
     def add_placeholders(self):
         '''
         Initial placeholders
@@ -75,8 +78,8 @@ class Model(object):
                 with tf.name_scope("conv-maxpool-%s" % filter_size):
                     # Convolution Layer
                     filter_shape = [filter_size, self.cfg.CHAR_EMB_DIM, 1, self.cfg.N_FILTERS]
-                    W = tf.get_variable("W_char", dtype=tf.float32, shape=filter_shape, initializer=xavi())
-                    b = tf.get_variable("b_char", dtype=tf.float32, shape=[self.cfg.N_FILTERS], initializer=tf.constant(0.1))
+                    W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name="W_char")
+                    b = tf.Variable(tf.constant(0.1, shape=[self.cfg.N_FILTERS]), name="b_char")
                     conv = tf.nn.conv2d(
                         self.embedded_chars_expanded,
                         W,
@@ -106,7 +109,7 @@ class Model(object):
     def get_feed_dict(self, words, labels=None, lr=None, dropout=None):
         """
         add pad to the data and build feed data for tensorflow
-        :param words: data sets
+        :param words: data
         :param labels: labels
         :param lr: learning rate
         :param dropout: dropout probability
@@ -189,6 +192,9 @@ class Model(object):
             losses = tf.boolean_mask(losses, mask)
             self.loss = tf.reduce_mean(losses)
 
+        # Create a summary to monitor cost tensor
+        tf.summary.scalar("loss", self.loss)
+
 
     def add_train_op(self):
         """
@@ -260,4 +266,10 @@ class Model(object):
         r = correct_preds / total_correct if correct_preds > 0 else 0
         f1 = 2 * p * r / (p + r) if correct_preds > 0 else 0
         acc = np.mean(accs)
+         # Create a summary to monitor accuracy
+        tf.summary.scalar("accuracy", acc)
+        # Create a summary to monitor Precision
+        tf.summary.scalar("accuracy", p)
+        # Create a summary to monitor Recall
+        tf.summary.scalar("accuracy", r)
         return acc, f1, losses, p ,r
