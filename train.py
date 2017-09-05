@@ -23,7 +23,7 @@ def train_model(cfg, train_set, dev_set, embed, tags, chars):
             validation_loss = 0.0
             accuracy = 0.0
             # Run batches
-            i = 0
+            i = 0 # counter for summary results.
             for words, labels in batch_gen(train_set, cfg.BATCH_SIZE):
                 fd, _ = model.get_feed_dict(words, labels, cfg.LR, cfg.DROPOUT)
                 # train model
