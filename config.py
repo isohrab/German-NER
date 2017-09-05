@@ -26,15 +26,12 @@ class DefaultConfig():
     N_EPOCHS = 100
     LR = 0.001
     LR_DECAY = 0.95
-    DROPOUT = 0.8
+    DROPOUT = 0.75
     # Char Embedding (CNN)
-    CHAR_EMB_DIM = 15
+    CHAR_EMB_DIM = 120
     FILTER_SIZE = [2, 3, 4, 5]
-    N_FILTERS = 32
+    N_FILTERS = 96
     # BiLSTM
-    HIDDEN_SIZE = 100
-
-    # CRF (prediction)
-    CRF = False
+    HIDDEN_SIZE = 400
 
 

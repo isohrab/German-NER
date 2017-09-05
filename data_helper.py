@@ -33,7 +33,7 @@ def add_pad(sequences, pad_token, max_length):
     :param sequences: a list
     :param pad_token: pad token
     :param max_length: maximum length to be padded
-    :return:
+    :return: Padded sequence and sequence length
     '''
     sequence_padded, sequence_length = [], []
 
