@@ -58,4 +58,4 @@ The model is consist of two main stage, Char level CNN and word level BiLSTM.
   * BATCH_SIZE: 40
   * N_EPOCHS: 100
   * BATCH_SIZE: 40
-  We got accuracy: XXX %, F1 score: XXXX, Precision: XXXX and Recall: XXXX. (it will be updated later)
+  We got accuracy: XXXX %, F1 score: XXXX, Precision: XXXX and Recall: XXXX. (it will be updated later)
