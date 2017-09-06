@@ -33,7 +33,7 @@ The model is consist of two main stage, Char level CNN and word level BiLSTM.
 
 * ##### Word level BiLSTM:
   Now, we have a tensor with shape of ```[Batch_size, Sentence_length, Word_embed+charCNN]```. We Initialized ```Forward_cell``` and ```backward_cell``` with ```HIDDEN_SIZE``` units. After running ```tf.nn.bidirectional_dynamic_rnn```, we get two final outputs for each forward and backward LSTMs and then concatenate them to a tensor with shape of ```[Batch_Size , sentence_length, 2*HIDDEN_SIZE].
-  After that, we used two fully connected layers which a ReLU activation in between is used. We should emphasize that by using second fully connected layer, we could increase accuracy  F1 score by 3%.
+  After that, we used two fully connected layers which a ReLU activation in between is used. We should emphasize that by using second fully connected layer, we could increase accuracy and F1 score by 3%.
   
 ### Hyperparameters and results:
 * Learning rate and optimizer: In all training, we used Adam optimizer with a Learning rate of 0.001 and learning decay of 0.95.
