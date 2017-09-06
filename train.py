@@ -12,8 +12,10 @@ def train_model(cfg, train_set, dev_set, embed, tags, chars):
 
     # Build Model
     model = Model(cfg, embed, len(tags), len(chars))
+
     # initial session
     with tf.Session() as sess:
+    # with tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=cfg.NUM_THREADS)) as sess:
         sess.run(tf.global_variables_initializer())
         # create log writer
         summary_writer = tf.summary.FileWriter(cfg.log_path, graph=tf.get_default_graph())
@@ -37,7 +39,7 @@ def train_model(cfg, train_set, dev_set, embed, tags, chars):
             # decay learning rate
             cfg.LR *= cfg.LR_DECAY
 
-            print("epoch %d - train loss: %.2f, validation loss: %.2f, accuracy: %.2f with f1: %.2f, P: %.2f, R: %.2f" % \
+            print("epoch %d - train loss: %.2f, validation loss: %.2f, accuracy: %.2f  with f1: %.2f , P: %.2f , R: %.2f " % \
                 (epoch + 1, train_losses, validation_loss, accuracy * 100, f1 * 100, p * 100, r * 100))
 
 

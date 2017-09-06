@@ -23,15 +23,18 @@ class DefaultConfig():
     ###  Hyper parameters    ###
     BATCH_SIZE = 40
     MAX_LENGTH_WORD = 50
-    N_EPOCHS = 100
+    N_EPOCHS = 50
     LR = 0.001
     LR_DECAY = 0.95
-    DROPOUT = 0.75
+    DROPOUT = 0.5
     # Char Embedding (CNN)
     CHAR_EMB_DIM = 120
     FILTER_SIZE = [2, 3, 4, 5]
-    N_FILTERS = 96
+    N_FILTERS = 128
     # BiLSTM
     HIDDEN_SIZE = 400
+
+    ### Tensorflow op   ###
+    NUM_THREADS = 4
 
 
