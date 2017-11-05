@@ -1,5 +1,9 @@
 # German-NER
-Named Entity Recognition with German dataset by using BiLSTM and CNN in Tensorflow
+Named Entity Recognition with German dataset by using BiLSTM and CNN in Tensorflow.
+
+This Repo is based following articles:
+ * Boosting Named Entity Recognition with Neural Character Embeddings by Cicero Nogueira dos Santos, Victor Guimarães.([PDF](http://www.anthology.aclweb.org/W/W15/W15-3904.pdf))
+ * Named Entity Recognition with Bidirectional LSTM-CNNs by Jason P.C. Chiu, Eric Nichols.([PDF](https://arxiv.org/pdf/1511.08308.pdf))
 
 ### Input Data:
 * A pre-trained word2vector for word embedding.
@@ -58,3 +62,12 @@ The model consists of two main stages: Char level CNN and word level BiLSTM.
   * N_EPOCHS: 50
 
 We got accuracy: 96.25 %, F1 score: 68.73%, Precision: 68.02% and Recall: 69.48%.
+
+
+### Acknowledgments 
+
+Some parts of this code, borrowed or inspired by following resources. I'm appreciating for their efforts.
+ * https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html
+ * http://cs231n.github.io/convolutional-networks/
+ * http://www.wildml.com/2016/08/rnns-in-tensorflow-a-practical-guide-and-undocumented-features/
+
