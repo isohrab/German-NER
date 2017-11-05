@@ -1,3 +1,4 @@
+# Borrowed from: https://github.com/guillaumegenthial/sequence_tagging/blob/master/model/data_utils.py
 from config import DefaultConfig as cfg
 
 def pad_sequences(sequences, pad_token, type):
